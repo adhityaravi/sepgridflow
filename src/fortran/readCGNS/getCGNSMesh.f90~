@@ -1,0 +1,205 @@
+module mesh_module
+
+contains
+
+  ! TO BE COMMENTED 
+  !subroutine get_mesh_f(  &
+  !    x, nxi, nxj, nxk,   &
+  !    y, nyi, nyj, nyk,   &
+  !    z, nzi, nzj, nzk,   &
+  !    X_test, ni, nj, nk, nCoord, &
+  !    connectivity, nConi, nConj, &
+  !    fileName,           &
+  !    iZone,              &
+  !    baseDim,            &
+  !    meshType,           &
+  !    meshDim,            &
+  !    XVar                &
+  !    )
+  ! TO BE COMMENTED 
+
+  ! TEST CODE
+  subroutine get_mesh_f(           &
+       X, ni, nj, nk, nCoord,      &
+       connectivity, nConi, nConj, &
+       fileName,                   &
+       iZone,                      &
+       baseDim,                    &
+       meshType,                   &
+       meshDim,                    &
+       XVar                        &
+       )
+  ! TEST CODE
+  
+  implicit none
+
+  include 'cgnslib_f.h'
+
+  ! In
+  ! For old Mesh Structure
+  !real(kind=8), intent(in out), dimension(nxi,nxj,nxk) :: x
+  !real(kind=8), intent(in out), dimension(nyi,nyj,nyk) :: y
+  !real(kind=8), intent(in out), dimension(nzi,nzj,nzk) :: z
+
+
+  ! For new Mesh structure
+  real(kind=8), intent(in), dimension(ni, nj, nk, nCoord) :: X
+
+  integer, intent(in out), dimension(nConi,nConj) :: connectivity
+
+  character(*), intent(in) :: fileName
+  integer, intent(in) :: iZone
+  integer, intent(in) :: baseDim
+  integer, intent(in) :: meshType
+  integer, intent(in), dimension(3,3) :: meshDim
+
+  ! For new Mesh structure
+  character*11, intent(in), dimension(nCoord) :: XVar
+
+  
+  ! Local
+  integer :: iBase
+  integer, allocatable, dimension(:) :: rangeMin, rangeMax
+  integer :: iFile, ier, iSection, parentData
+
+  ! For old Mesh structure
+  !integer :: nxi, nxj, nxk, &
+  !           nyi, nyj, nyk, &
+  !           nzi, nzj, nzk, &
+  !           nConi, nConj, &
+  !           ni, nj, nk, nCoord
+
+  ! For new Mesh Structure
+  integer :: ni, nj, nk,    &
+             nConi, nConj,  &
+             nCoord, iCoord      
+
+  !f2py intent(hide),depend(x) :: nxi=shape(x,0),nxj=shape(x,1),nxk=shape(x,2)
+  !f2py intent(hide),depend(y) :: nyi=shape(y,0),nyj=shape(y,1),nyk=shape(y,2)
+  !f2py intent(hide),depend(z) :: nzi=shape(z,0),nzj=shape(z,1),nzk=shape(z,2)
+  !f2py intent(hide),depend(connectivity) :: nConi=shape(connectivity,0),nConj=shape(connectivity,1)
+
+  ! ASSUMPTION: 1 section
+  iSection = 1
+  iBase = 1
+  
+  if (allocated(rangeMin)) then
+    deallocate(rangeMin)
+  endif
+  
+  
+  ! Open cgns file
+  call cg_open_f(fileName, cg_mode_read, iFile, ier)
+  call check_cg_error_f(ier)
+
+  if (meshType == Structured) then
+
+    !allocate(connectivity(1,1))
+    connectivity = 0
+    
+    ! Reading old Mesh structure
+    !if (baseDim == 3) then
+
+    !  allocate(rangeMin(3))
+    !  allocate(rangeMax(3))
+
+    !  rangeMin = 1
+    !  rangeMax(1) = meshDim(1,1)
+    !  rangeMax(2) = meshDim(1,2)
+    !  rangeMax(3) = meshDim(1,3)
+
+    !  !! read coordinates
+    !  call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateX',RealDouble,rangeMin,rangeMax,x,ier)
+    !  call check_cg_error_f(ier)
+    !  call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateY',RealDouble,rangeMin,rangeMax,y,ier)
+    !  call check_cg_error_f(ier)
+    !  call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateZ',RealDouble,rangeMin,rangeMax,z,ier)
+    !  call check_cg_error_f(ier)
+
+    !elseif (baseDim == 2) then
+
+    !  allocate(rangeMin(2))
+    !  allocate(rangeMax(2))
+
+    !  rangeMin = 1
+    !  rangeMax(1) = meshDim(1,1)
+    !  rangeMax(2) = meshDim(1,2)
+      !! read coordinates
+    !  call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateX',RealDouble,rangeMin,rangeMax,x,ier)
+    !  call check_cg_error_f(ier)
+    !  call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateY',RealDouble,rangeMin,rangeMax,y,ier)
+    !  call check_cg_error_f(ier)
+    !  z = 0
+
+    !endif
+
+    ! Reading new Mesh structure
+    allocate(rangeMin(nCoord))
+    allocate(rangeMax(nCoord))
+ 
+    rangeMin = 1
+    do iCoord = 1, nCoord	
+    	rangeMax(iCoord) = meshDim(1, iCoord)
+    enddo
+
+    ! read coordinates
+    do iCoord = 1, nCoord
+    
+    	call cg_coord_read_f(iFile, iBase, iZone, XVar(iCoord), RealDouble, rangeMin, rangeMax, X(:, :, :, iCoord), ier)
+    	call check_cg_error_f(ier)
+    
+    enddo
+
+  elseif (meshType == Unstructured) then
+
+    call cg_elements_read_f(iFile, iBase, iZone, iSection, connectivity, parentData, ier)
+    call check_cg_error_f(ier)
+
+    allocate(rangeMin(1))
+    allocate(rangeMax(1))
+    rangeMin = 1
+    rangeMax(1) = meshDim(1,1)
+    
+    ! Reading old Mesh structure
+    !if (baseDim == 3) then
+
+      ! read coordinates
+      !call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateX',RealDouble,rangeMin,rangeMax,x,ier)
+      !call check_cg_error_f(ier)
+      !call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateY',RealDouble,rangeMin,rangeMax,y,ier)
+      !call check_cg_error_f(ier)
+      !call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateZ',RealDouble,rangeMin,rangeMax,z,ier)
+      !call check_cg_error_f(ier)
+
+    !elseif (baseDim == 2) then
+
+      ! read coordinates
+      !call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateX',RealDouble,rangeMin,rangeMax,x,ier)
+      !call check_cg_error_f(ier)
+      !call cg_coord_read_f(iFile,iBase,iZone, 'CoordinateY',RealDouble,rangeMin,rangeMax,y,ier)
+      !call check_cg_error_f(ier)
+
+    !endif
+
+    ! Reading new Mesh structure
+    ! read coordinates
+    do iCoord = 1, nCoord
+    
+    	call cg_coord_read_f(iFile, iBase, iZone, XVar(iCoord), RealDouble, rangeMin, rangeMax, X(:, :, :, iCoord), ier)
+    	call check_cg_error_f(ier)
+    
+    enddo
+  
+  endif
+     
+  deallocate(rangeMin)
+  deallocate(rangeMax)
+
+  ! close cgns file
+  call cg_close_f(iFile, ier)
+  call check_cg_error_f(ier)
+
+  end subroutine get_mesh_f
+
+end module mesh_module
+

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+
+# BUILD
+# ~~~~~
+
+# removing the old libraries
+rm src/python/fortranLib/getCGNSFlow.so
+rm src/python/fortranLib/getCGNSInfos.so
+rm src/python/fortranLib/getCGNSMesh.so
+
+# building new libraries
+python setupU1404.py build_ext --build-lib src/python/fortranLib
