@@ -1,4 +1,4 @@
-from GridFlowSep.src.python.fortranLib.getCGNSInfos import infos_module
+from src.python.fortranLib.getCGNSInfos import infos_module
 from os import listdir
 import re
 

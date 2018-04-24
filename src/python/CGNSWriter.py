@@ -1,6 +1,6 @@
 import numpy as np
 from os import path
-from GridFlowSep.src.python.fortranLib.writeCGNSMesh import write_mesh
+from src.python.fortranLib.writeCGNSMesh import write_mesh
 
 class CGNSWriter():
 

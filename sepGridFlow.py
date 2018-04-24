@@ -18,9 +18,6 @@ class SepGridFlow():
             self.meshDim, self.cellDim, self.nNodesElem, self.nElem, self.ZoneNames = self.CI.getCGNSInfo()
         self.fieldDim = self.CI.getDim()
 
-        print self.caseType
-        exit()
-
         # --> Initializing CGNSReader
         self.CR = CGNSReader(snapshotsP)
         # --> Initializing CGNSWriter

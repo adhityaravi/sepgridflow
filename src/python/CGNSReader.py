@@ -1,7 +1,7 @@
 import numpy as np
 from os import path
-from GridFlowSep.src.python.fortranLib.getCGNSFlow import flow_module
-from GridFlowSep.src.python.fortranLib.getCGNSMesh import mesh_module
+from src.python.fortranLib.getCGNSFlow import flow_module
+from src.python.fortranLib.getCGNSMesh import mesh_module
 
 class CGNSReader():
 
