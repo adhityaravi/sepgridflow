@@ -1,4 +1,3 @@
-
 subroutine un_2d_tr(fileName,zoneName)
 
   implicit none
@@ -8,16 +7,23 @@ subroutine un_2d_tr(fileName,zoneName)
   character(*), intent(in) :: fileName, zoneName
 
   integer :: ier, cellDim, physDim, nelem_start, nelem_end, nbdyelem 
-  integer :: iFile, iB, iSection, iFlow, iMeshVar, iFlowVar
+  integer :: iFile, iB, iSection, iFlow, iMeshVar, iFlowVar, iL
   integer, dimension(1,3) :: isize
   character(len=32) :: basename, solname
+  character(len=260) :: zoneNodePath
+  character(len=nMFN) :: meshFileN
+  character(len=nGNP) :: gridNodeP
+  character(len=nCNP) :: connNodeP
   integer, dimension(2) :: iC, iField
 
+  ! Converting the names read from python, which are array of characters, to a string
+  call str_mgmt(meshFileName, meshFileN, nMFN)
+  call str_mgmt(gridNodePath, gridNodeP, nGNP)
+  call str_mgmt(connNodePath, connNodeP, nCNP)
 
   ! --------------------------------------------------------------------
   ! open CGNS file to write OR edit and create/read base
-  basename = 'Base'
-
+  basename = 'FlowSolutionBase'
   ! In 2D unstr.
   cellDim=2
   physDim=2
@@ -45,34 +51,26 @@ subroutine un_2d_tr(fileName,zoneName)
   ! vertex size
   isize(1,1)=ni
   ! cell size
-  isize(1,2)=nCony
+  isize(1,2)=nElem
   ! boundary vertex size (zero if elements not sorted)
   isize(1,3)=0
   ! create zone
   call cg_zone_write_f(iFile,iB,zonename,isize, Unstructured,iZ,ier)
   call check_cg_error_f(ier)
 
-  !----------------------------------------------------------------------
-  ! Create a Grid Node (New)
-  call cg_grd_write_f()
+  !---------------------------------------------------------------------
+  ! Linking to a grid file
+  ! Go to the current zone node
+  zoneNodePath = '/' // trim(basename) // '/' // trim(zonename)
+  call cg_gopath_f(iFile, trim(zoneNodePath), ier)
+  call check_cg_error_f(ier)
 
-  ! ---------------------------------------------------------------------
-  ! write grid coordinates (user must use SIDS-standard names here)
-  do iMeshVar = 1, nMeshVar
-    call cg_coord_write_f(iFile, iB, iZ, RealDouble, XVar(iMeshVar), X(:,:,:,iMeshVar), iC(iMeshVar), ier)
-    call check_cg_error_f(ier)
-  enddo
+  ! Link the zone node to the grid node of the specified grid file
+  call cg_link_write_f('GridCoordinates', meshFileN, gridNodeP, ier)
+  call check_cg_error_f(ier)
 
-  ! ---------------------------------------------------------------------
-  ! Elements connectivity
-
-  ! index no of first element
-  nelem_start = 1
-  nelem_end = nCony
-  ! unsorted boundary elements
-  nbdyelem=0
-
-  call cg_section_write_f(iFile, iB, iZ, 'Elem', TRI_3, nelem_start, nelem_end, nbdyelem, conn, iSection,ier)
+  ! Link the zone node to the elem node (connectivity) node of the specified grid file
+  call cg_link_write_f('Elem', meshFileN, connNodeP, ier)
   call check_cg_error_f(ier)
 
  ! ---------------------------------------------------------------------
@@ -84,11 +82,13 @@ subroutine un_2d_tr(fileName,zoneName)
    call cg_sol_write_f(iFile, iB, iZ, solname, Vertex,iFlow,ier)
    call check_cg_error_f(ier)
 
+
   ! write flow solution (user must use SIDS-standard names here)
   do iFlowVar = 1, nFlowVar
     call cg_field_write_f(iFile, iB, iZ, iFlow, RealDouble, UVar(iFlowVar), U(:,1,1,iFlowVar), iField(iFlowVar), ier)
     call check_cg_error_f(ier)
   enddo
+
 
   ! ----------------------------------------------------------
   ! close CGNS file

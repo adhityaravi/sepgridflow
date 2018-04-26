@@ -96,6 +96,29 @@ writeCGNSMesh = Extension(
     extra_f90_compile_args=['-fcheck=all']
 )
 
+writeCGNSFlow = Extension(
+    name='writeCGNSFlow',
+    sources=[ \
+        'src/fortran/writeCGNS/writeFlow/writeFlow.f90',
+        'src/fortran/writeCGNS/writeFlow/checkCGNSError.f90',
+        'src/fortran/tools/str_mgmt.f90'
+    ],
+    include_dirs=[
+        # '/usr/include',
+        # '/usr/local/include',
+        '/home/daniel/.local/cgns/' + cgnsVer + '/include',
+        '/home/daniel/.local/hdf5/' + hdf5Ver + '/include',
+    ],
+    library_dirs=[
+        # '/usr/local/lib',
+        # '/home/adhitya/Dokumente/xAMC/program/xAMC',
+        '/home/daniel/.local/cgns/' + cgnsVer + '/lib',
+        '/home/daniel/.local/hdf5/' + hdf5Ver + '/lib',
+    ],
+    libraries=['cgns', 'hdf5'],
+    extra_f90_compile_args=['-fcheck=all']
+)
+
 setup(name='f2py_example',
       description="Fortran subroutines for python",
       author="Daniel Fernex",
@@ -104,4 +127,5 @@ setup(name='f2py_example',
           getCGNSInfos,
           getCGNSMesh,
           getCGNSFlow,
-          writeCGNSMesh,])
+          writeCGNSMesh,
+          writeCGNSFlow,])

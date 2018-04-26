@@ -1,6 +1,3 @@
-
-
-
 subroutine st_3d_he(fileName,zoneName)
 
   implicit none
@@ -14,13 +11,19 @@ subroutine st_3d_he(fileName,zoneName)
   integer, dimension(3,3) :: isize
   integer :: iFile, iB, iZ, iFlow, cellDim, physDim, ier, iMeshVar, iFlowVar
   character :: basename*32, solname*32
+  character(len=260) :: zoneNodePath
+  character(len=nMFN) :: meshFileN
+  character(len=nGNP) :: gridNodeP
   integer, dimension(3) :: iC, iField
 
+  ! Converting the names read from python, which are array of characters, to a string
+  call str_mgmt(meshFileName, meshFileN, nMFN)
+  call str_mgmt(gridNodePath, gridNodeP, nGNP)
 
   ! --------------------------------------------------------------------
   ! open CGNS file to write OR edit and create/read base
 
-  basename = 'Base'
+  basename = 'FlowSolutionBase'
   ! In 2D unstr.
   cellDim=3
   physDim=3
@@ -63,17 +66,21 @@ subroutine st_3d_he(fileName,zoneName)
   call check_cg_error_f(ier)
 
   ! ---------------------------------------------------------------------
-  ! write COORDINATES
-  do iMeshVar = 1, nMeshVar
-    call cg_coord_write_f(iFile, iB, iZ, RealDouble, XVar(iMeshVar), X(:,1,1,iMeshVar), iC(iMeshVar), ier)
-    call check_cg_error_f(ier)
-  enddo
+  ! Linking to a grid file
+  ! Go to the current zone node
+  zoneNodePath = '/' // trim(basename) // '/' // trim(zonename)
+  call cg_gopath_f(iFile, trim(zoneNodePath), ier)
+  call check_cg_error_f(ier)
+
+  ! Link the zone node to the grid node of the specified grid file
+  call cg_link_write_f('GridCoordinates', meshFileN, gridNodeP, ier)
+  call check_cg_error_f(ier)
 
   ! ---------------------------------------------------------------------
   ! Create solution node
 
   ! create node
-  solname = 'velocity'
+  solname = 'FlowSolution'
   call cg_sol_write_f(iFile,iB,iZ,solname,Vertex,iFlow,ier)
   call check_cg_error_f(ier)
   ! write solution (user must use SIDS-standard names here)

@@ -5,10 +5,14 @@ from src.python.CGNSWriter import CGNSWriter
 
 class SepGridFlow():
 
-    def __init__(self, snapshotsP, newMeshP, newFlowP, FlowVar, MeshVar, GridSpec=None):
+    def __init__(self, snapshotsP, newFilePath, newMeshFileName, FlowVar, MeshVar, GridSpec=None):
         """Initialize with path where the cgns files are stored, flow variables, grid variables, and grid specification
 
-            Grid specification can be used to specify if the mesh is cartesian or equidistant or standard"""
+            Important:
+            * Grid specification should be mentioned in case of cartesian, equidistant or standard mesh
+            * Grid File and Flow file can be stored only under the same folder .
+            * File name for the newly written grid file can be specified but the flow files uses the names of
+              current cgns files"""
 
         # --> Fetching case infos
         self.CI = CaseInfos(snapshotsP, GridSpec)
@@ -18,16 +22,19 @@ class SepGridFlow():
             self.meshDim, self.cellDim, self.nNodesElem, self.nElem, self.ZoneNames = self.CI.getCGNSInfo()
         self.fieldDim = self.CI.getDim()
 
+        # --> Mixed element type not yet handled
+        self._checkForMi()
+
         # --> Initializing CGNSReader
         self.CR = CGNSReader(snapshotsP)
         # --> Initializing CGNSWriter
-        self.CW = CGNSWriter(newMeshP, newFlowP, self.ZoneNames, self.cellDim)
+        self.CW = CGNSWriter(newFilePath, newMeshFileName, self.ZoneNames, self.cellDim)
 
         # --> Flow and mesh variables check
         self.FlowVar = FlowVar
-        self._checkCGNSFlowVar(self.FlowVar)
+        self._checkCGNSFlowVar()
         self.MeshVar = MeshVar
-        self._checkCGNSMeshVar(self.MeshVar)
+        self._checkCGNSMeshVar()
 
         # --> Reading mesh
         self._readMesh()
@@ -36,8 +43,6 @@ class SepGridFlow():
 
         # --> Reading and Re-writing Flow with a link to the Grid file
         self._readLinkAndRewriteFlow()
-
-
 
     def _readMesh(self):
 
@@ -66,26 +71,33 @@ class SepGridFlow():
                 Conn[iZ] = np.ndarray((2, 2), order='F', dtype='int32')
             else:
                 # If mixed: don't initialize the connectivity, because it will
-                # be overwritten in readMesh()
+                # be overwritten in readMesh() (not yet handled)
                 if self.caseType[iZ].endswith('mi'):
                     pass
                 else:
                     Conn[iZ] = np.ndarray((self.nNodesElem[iZ], self.nElem[iZ]), order='F',
                                           dtype='int32')
 
+    def _writeMesh(self):
+        """Write the extracted Mesh in the new file"""
+
+        self.CW.writeMesh(self.Mesh, self.Conn, self.nZones, self.MeshVar, self.caseType)
+
     def _readLinkAndRewriteFlow(self):
-        """Get all the Flow data from the cgns files"""
+        """Get all the Flow data from the cgns files and rewrite them with a link to the grid file"""
 
         # --> Initialize arrays
         self.Flow = []
 
         for iSnap in range(self.nSnap):
-            # --> Initializing Flow
+            # --> Initializing flow
             self._initializeFlow(self.Flow)
-            # --> Reading Flow
+            # --> Reading flow
             self.CR.readFlow(self.snapshots[iSnap], self.Flow, self.nZones, self.physDim,
                              self.meshType, self.meshDim, self.FlowVar)
-
+            # --> Linking and rewriting flow
+            self.CW.linkAndWriteFlow(self.Flow, self.nZones, self.nElem, self.FlowVar, self.snapshots[iSnap],
+                                     self.caseType)
 
     def _initializeFlow(self, Data, nDim=None):
         """Initialize flow with appropriate dimensions"""
@@ -104,27 +116,30 @@ class SepGridFlow():
 
             Data[iZ] = np.ndarray(dim, order='F')
 
-    def _writeMesh(self):
-        """Write the extracted Mesh in the new file"""
+    def _checkForMi(self):
+        """Temporary check for if there are mixed elements in the mesh as they are not yet handled"""
 
-        self.CW.writeMesh(self.Mesh, self.Conn, self.nZones, self.MeshVar, self.caseType)
+        for iZone in range(self.nZones):
+            if self.caseType[iZone][9:] == 'mi':
+                errorMsg = 'Mixed elements are not yet handled'
+                raise Exception(errorMsg)
 
-    def _checkCGNSFlowVar(self, FlowVar):
+    def _checkCGNSFlowVar(self):
         """Checks if the flow variables have the right name for the CGNS format"""
 
-        for iFlowVar in range(len(FlowVar)):
-            if FlowVar[iFlowVar] in ['VelocityX', 'VelocityY', 'VelocityZ']:
+        for iFlowVar in range(len(self.FlowVar)):
+            if self.FlowVar[iFlowVar] in ['VelocityX', 'VelocityY', 'VelocityZ']:
                 continue
             else:
                 raise ValueError(
                     '\n\tFlow variable names (FlowVar in ConfigFile) are not according to the CGNS standard\n'
                     '\tCGNS standard flow variable names : VelocityX, VelocityY, VelocityZ')
 
-    def _checkCGNSMeshVar(self, MeshVar):
+    def _checkCGNSMeshVar(self):
         """Checks if the mesh variables have the right name for the CGNS format"""
 
-        for iMeshVar in range(len(MeshVar)):
-            if MeshVar[iMeshVar] in ['CoordinateX', 'CoordinateY', 'CoordinateZ']:
+        for iMeshVar in range(len(self.MeshVar)):
+            if self.MeshVar[iMeshVar] in ['CoordinateX', 'CoordinateY', 'CoordinateZ']:
                 continue
             else:
                 raise ValueError(

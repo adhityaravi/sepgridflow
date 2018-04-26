@@ -8,7 +8,7 @@ subroutine un_2d_tr(fileName,zoneName)
   character(*), intent(in) :: fileName, zoneName
 
   integer :: ier, cellDim, physDim, nelem_start, nelem_end, nbdyelem 
-  integer :: iFile, iB, iSection, iFlow, iMeshVar, iFlowVar
+  integer :: iFile, iB, iG, iSection, iFlow, iMeshVar, iFlowVar
   integer, dimension(1,3) :: isize
   character(len=32) :: basename, solname
   integer, dimension(2) :: iC, iField
