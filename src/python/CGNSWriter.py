@@ -1,5 +1,6 @@
 import numpy as np
 from os import path
+import os
 from src.python.fortranLib.writeCGNSMesh import write_mesh
 from src.python.fortranLib.writeCGNSFlow import write_flow
 
@@ -73,6 +74,12 @@ class CGNSWriter():
         """Link the flow to mesh and write flow"""
 
         flowFilePath = path.join(self.newFilePath, flowFileName)
+        pathToBeCreated, foo = path.split(flowFilePath)
+
+        if not os.path.exists(pathToBeCreated):
+            os.mkdir(pathToBeCreated)
+
+        self.meshFileName = self.meshFilePath
 
         # Mesh file name specifications
         nMFN = len(self.meshFileName)

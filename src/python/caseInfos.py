@@ -1,5 +1,6 @@
 from src.python.fortranLib.getCGNSInfos import infos_module
 from os import listdir
+import os
 import re
 
 class CaseInfos():
@@ -10,7 +11,7 @@ class CaseInfos():
 
         self.snapshotsP = snapshotsP
         self.GridSpec = GridSpec
-        self.DataFormat = 'cgns'
+        self.DataFormat = ''
 
         self.getSnapshots()
 
@@ -26,9 +27,14 @@ class CaseInfos():
             msg = "\nNo snapshots in '{}' format found!".format(self.DataFormat)
             raise Exception(msg)
 
-        self.snapshots = self._orderFiles(snapshots)
+        #self.snapshots = self._orderFiles(snapshots)
+        snapshots.sort()
+        self.snapshots = snapshots
 
         self.nSnap = len(self.snapshots)
+
+        for iSnap in range(self.nSnap):
+            self.snapshots[iSnap] = os.path.join(self.snapshots[iSnap], 'SubDom1.cgns')
 
         return self.snapshots
 
@@ -82,7 +88,8 @@ class CaseInfos():
             Currently works only for a single cgns file"""
 
         name = '{}/{}'.format(self.snapshotsP, self.snapshots[0])
-        name = name.replace('.{}'.format(self.DataFormat), '.cgns')
+        #name = name.replace('.{}'.format(self.DataFormat), '.cgns')
+
         infos_module.get_cgns_infos_f(name)
 
         infos_module.get_cgns_infos_f(name)

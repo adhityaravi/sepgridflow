@@ -46,6 +46,8 @@ class SepGridFlow():
 
     def _readMesh(self):
 
+        print('\nReading Mesh...\n')
+
         # --> Initialize
         self.Mesh = []
         self.Conn = []
@@ -81,6 +83,8 @@ class SepGridFlow():
     def _writeMesh(self):
         """Write the extracted Mesh in the new file"""
 
+        print('\nWriting Mesh...\n')
+
         self.CW.writeMesh(self.Mesh, self.Conn, self.nZones, self.MeshVar, self.caseType)
 
     def _readLinkAndRewriteFlow(self):
@@ -90,6 +94,8 @@ class SepGridFlow():
         self.Flow = []
 
         for iSnap in range(self.nSnap):
+            print('\nWriting Flow ({}/{})...'.format(iSnap+1, self.nSnap))
+
             # --> Initializing flow
             self._initializeFlow(self.Flow)
             # --> Reading flow
